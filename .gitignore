@@ -38,7 +38,7 @@ wandb/
 Thumbs.db
 
 # Exception: Keep .gitkeep or specific files if needed
-!weights/.gitkeep
+!weights/*
 !luong_yolov8n.png
 !luong_yolov8s_world.png
 # Allow demo output folder and its images

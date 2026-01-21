@@ -40,3 +40,5 @@ Thumbs.db
 
 # Exception: Keep .gitkeep or specific files if needed
 !weights/.gitkeep
+!luong_yolov8n.png
+!luong_yolov8s_world.png

@@ -44,6 +44,7 @@ Thumbs.db
 # Allow demo output folder and its images
 !output/
 output/*
+!output/demo.gif
 !output/demo_yoloworld/
 !output/demo_yoloworld/*.jpg
 !output/demo_yoloworld/*.png

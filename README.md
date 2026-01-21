@@ -1,5 +1,7 @@
 # Semantic Surveillance: He thong Giam sat An toan Lao dong Thong minh
 
+![Demo GIF](output/demo.gif)
+
 Chuong trinh giam sat viec tuan thu trang bi bao ho lao dong (PPE) tren cong truong xay dung. Du an ho tro hai che do hoat dong: **Che do San xuat (Production)** su dung mo hinh YOLOv8 da duoc huan luyen va **Che do Nghien cuu (Future)** su dung YOLO-World (Zero-shot).
 
 ---

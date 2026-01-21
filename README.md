@@ -111,4 +111,15 @@ Quy trinh hien dai: **Bo qua buoc Gan nhan va Huan luyen**.
 ![Luong xu ly cua yoloworld](./luong_yolov8s_world.png)
 
 
+
+
+## Ket qua Thu nghiem (Demo Results)
+Ket qua chay tren Che do Nghien cuu (YOLO-World):
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| ![1](output/demo_yoloworld/1.png) | ![2](output/demo_yoloworld/2.jpg) | ![3](output/demo_yoloworld/3.jpg) | ![4](output/demo_yoloworld/4.jpg) |
+| ![5](output/demo_yoloworld/5.jpg) | ![6](output/demo_yoloworld/6.jpg) | ![7](output/demo_yoloworld/7.jpg) | ![8](output/demo_yoloworld/8.png) |
+
+---
 Author: Phuong Phan Nguyen Mai & Hoang Ngo Quoc

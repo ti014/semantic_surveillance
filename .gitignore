@@ -1,0 +1,42 @@
+# Python / Environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+.conda/
+pip-log.txt
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Datasets & Media (Prevent uploading large files)
+datasets/
+images_test/
+*.mp4
+*.avi
+*.jpg
+*.png
+*.jpeg
+
+# Models weights (Large files)
+weights/*.pt
+*.pt
+*.pth
+*.onnx
+
+# Output / Logs
+runs/
+output/
+logs/
+wandb/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Exception: Keep .gitkeep or specific files if needed
+!weights/.gitkeep

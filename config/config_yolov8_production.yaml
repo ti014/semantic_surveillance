@@ -1,0 +1,72 @@
+# Configuration for Trained YOLOv8 Model
+# Path: config/ppe_config_trained.yaml
+
+detection:
+  type: trained       # 'trained' or 'zero-shot'
+  # Double check path if needed
+  model_path: weights/yolo8s_ppedetect_50e_best.pt
+  model_size: n       # nano
+  
+  # Confidence threshold detection (High Precision Mode)
+  confidence_threshold: 0.50
+  
+  # IoU threshold for NMS/Matching
+  iou_threshold: 0.3
+
+regions:
+  # Spatial matching regions relative to person box
+  head_ratio: 0.3    # Top 30% for hard hat
+  torso_ratio: 0.5   # Middle 50% for vest (increased slightly)
+  legs_ratio: 0.3    # Bottom 30% for boots
+
+# Rules for Safety Compliance
+ppe_rules:
+  # Disable strict region checking for trained models (trust the detector more)
+  strict_regions: false
+  
+  # Equipment required for VALID/SAFE status
+  # Logic: Must have ALL of these to be Compliant
+  required_equipment:
+    - hard_hat
+    # - safety_vest
+
+  # Mapping from Model Class Names -> Standard Logic Names
+  class_mapping:
+    helmet: hard_hat
+    vest: safety_vest
+    boots: safety_boots
+    gloves: gloves
+    goggles: safety_goggles
+    Person: person
+
+# Visualization Settings
+visualization:
+  safe_color: [0, 255, 0]      # Green
+  violation_color: [0, 0, 255] # Red
+  box_thickness: 2
+  font_scale: 0.6
+  show_stats: true
+  
+  line_thickness: 2
+  colors:
+    person_safe: [0, 255, 0]      # Green
+    person_unsafe: [0, 0, 255]    # Red
+    hard_hat: [255, 255, 0]       # Yellow
+    safety_vest: [255, 165, 0]    # Orange
+    safety_boots: [139, 69, 19]   # Brown
+    gloves: [0, 255, 255]         # Cyan
+
+# Logger
+logging:
+  save_dir: logs/violations
+  violation_dir: data/violations
+  log_format: json
+  save_images: true
+  console_log: true
+  save_interval: 30
+
+video:
+  source: 0
+  max_frames: null
+  resize_width: 640
+  display_fps: true

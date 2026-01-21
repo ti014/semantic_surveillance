@@ -1,0 +1,55 @@
+ppe_rules:
+  # Simplified Prompts: Just Person and Hard Hat
+  prompts:
+    - person
+    - hard hat
+
+  # Required: base names only
+  required_equipment:
+    - hard_hat
+    # - safety_vest
+
+detection:
+  type: zero-shot
+  # Model size: s (small), m (medium), l (large), x (extra-large)
+  # Using NANO (n) for speed per user request
+  model_size: s
+  
+  # Confidence threshold cho detection
+  confidence_threshold: 0.15
+  
+  # IoU threshold
+  iou_threshold: 0.15
+
+regions:
+  # Tỷ lệ phần trăm của bounding box người
+  head_ratio: 0.3    # Head region for hard hat
+  torso_ratio: 0.4   # Torso region for safety vest
+  legs_ratio: 0.3    # Legs region
+
+logging:
+  violation_dir: data/violations
+  log_format: json
+  save_images: true
+  console_log: true
+
+video:
+  source: 0
+  max_frames: null
+  resize_width: 640
+  display_fps: true
+
+visualization:
+  safe_color: [0, 255, 0]      # Green
+  violation_color: [0, 0, 255] # Red
+  box_thickness: 2
+  font_scale: 0.6
+  show_stats: true
+  
+  # Colors for specific equipment
+  colors:
+    person: [0, 255, 0]        # Green
+    hard_hat: [255, 255, 0]    # Yellow (Cyan in BGR)
+    safety_vest: [255, 165, 0] # Orange
+    "hard hat": [255, 255, 0]  # Support space variant
+    "safety vest": [255, 165, 0]

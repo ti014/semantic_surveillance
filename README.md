@@ -70,7 +70,7 @@ Phu hop nhat de bao cao ket qua cuoi cung tren video. Su dung mo hinh da duoc hu
 
 ```bash
 # Chay tren file video
-python main.py --config config/config_yolov8_production.yaml --source bao-ho-lao-dong.mp4
+python main.py --config config/config_yolov8_production.yaml --source videos_test/bao-ho-lao-dong.mp4
 
 # Luu ket qua ra file video
 python main.py --config config/config_yolov8_production.yaml --source bao-ho-lao-dong.mp4 --save-path output/demo.mp4
@@ -84,6 +84,10 @@ Phu hop de thu nghiem kha nang Zero-shot tren mot folder chua anh.
 python scripts/test_images.py --config config/config_yoloworld_future.yaml --source images_test --output output/future_test
 ```
 
+### 3. Stream
+```bash
+python scripts/demo_stream.py --config config/config_yolov8_production.yaml --source 0
+```
 ---
 
 ## Chi tiet Kien truc

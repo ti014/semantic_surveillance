@@ -1,0 +1,443 @@
+% Semantic Surveillance PPE Monitoring - Slide Deck (Beamer)
+% Vietnamese có dấu + English technical terms
+\documentclass[aspectratio=169]{beamer}
+\usetheme{Madrid}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\title{Semantic Surveillance \\ Hệ thống giám sát PPE thông minh}
+\author{Phuong Phan Nguyen Mai \and Hoang Ngo Quoc}
+\date{\today}
+
+\begin{document}
+
+%------------------------------------------------------------------
+\begin{frame}
+  \titlepage
+  \begin{itemize}
+    \item Mục tiêu: Giám sát tuân thủ PPE trên công trường xây dựng.
+    \item Trọng tâm hiện tại: YOLOv8n đã huấn luyện (phát hiện PPE chính).
+    \item Hướng tương lai: YOLO-World để mở rộng nhanh mà không cần gán nhãn.
+    \item PPE (Personal Protective Equipment): trang bị bảo hộ cá nhân như mũ, áo phản quang, găng, giày, kính.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Vấn đề \& Yêu cầu}
+  \begin{itemize}
+    \item Rủi ro mất an toàn từ việc thiếu PPE; cần cảnh báo nhanh, chính xác.
+    \item Thách thức: nhiều loại PPE, môi trường nhiễu, góc quay phức tạp.
+    \item Ràng buộc triển khai: thời gian suy luận thấp, dễ mở rộng PPE mới, hạn chế labeling thủ công.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Giới thiệu YOLO}
+  \begin{itemize}
+    \item YOLO là mô hình phát hiện đối tượng theo thời gian thực, xử lý ảnh theo một lần suy luận.
+    \item Ưu điểm: tốc độ cao, dễ triển khai trên camera/video.
+    \item Hạn chế: phụ thuộc chất lượng dữ liệu huấn luyện và điều kiện môi trường.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Các phiên bản liên quan trong dự án}
+  \begin{itemize}
+    \item YOLOv8n: bản nhẹ, nhanh, phù hợp chạy thời gian thực; là trọng tâm hiện tại.
+
+    \item YOLO-World: hướng tương lai, nhận diện theo mô tả văn bản, không cần gán nhãn lại.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Giải pháp tổng thể}
+  \begin{itemize}
+    \item Trọng tâm hiện tại: YOLOv8n đã huấn luyện để phát hiện người và PPE (mũ, áo phản quang, giày, găng, kính).
+    \item Kiến trúc tách lớp: Detector -- Ghép thiết bị -- Kiểm tra quy tắc -- Ghi log/Hiển thị.
+    \item Cấu hình bằng YAML: ngưỡng tin cậy, quy tắc bắt buộc, ánh xạ nhãn.
+    \item Hướng tương lai: YOLO-World giúp nhận diện PPE mới chỉ bằng mô tả văn bản, không cần gán nhãn.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Kiến trúc thành phần (core/)}
+  \begin{itemize}
+    \item \texttt{detector.py}: YOLOv8n là detector chính; YOLO-World chỉ dùng cho nghiên cứu mở rộng.
+    \item \texttt{ppe\_checker.py}: Ghép thiết bị theo vùng cơ thể + kiểm tra đủ PPE bắt buộc.
+    \item \texttt{violation\_logger.py}: lưu ảnh vi phạm, metadata dạng JSONL, thống kê theo loại thiếu.
+    \item \texttt{visualizer.py}: vẽ khung, nhãn an toàn/vi phạm, hiển thị thống kê.
+    \item \texttt{utils/helpers.py}: đọc YAML, hàm hỗ trợ hình học.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Cấu hình chính (YAML)}
+  \begin{itemize}
+    \item \textbf{YOLOv8n (chính)}: \texttt{config\_yolov8\_production.yaml}
+      \begin{itemize}
+        \item Ngưỡng tin cậy 0.50, IoU 0.3 để giảm nhầm lẫn.
+        \item Ánh xạ nhãn (helmet$\rightarrow$hard\_hat, vest$\rightarrow$safety\_vest,...).
+        \item Quy tắc bắt buộc: ít nhất phải có mũ bảo hộ (có thể mở rộng thêm áo, giày,...).
+      \end{itemize}
+    \item \textbf{YOLO-World (tương lai)}: \texttt{config\_yoloworld\_future.yaml}
+      \begin{itemize}
+        \item Dùng mô tả văn bản để nhận diện PPE mới.
+        \item Ngưỡng tin cậy thấp hơn để không bỏ sót khi zero-shot.
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Workflow suy luận (main.py)}
+  \begin{enumerate}
+    \item Load config, khởi tạo detector (YOLOv8 hoặc YOLO-World), \textbf{PPEChecker}, \textbf{ViolationLogger}, \textbf{Visualizer}.
+    \item Đọc khung hình (video/camera), resize nếu cần.
+    \item Detector: predict $\rightarrow$ \texttt{get\_detections} trả về \{person, hard\_hat, ...\}.
+    \item PPEChecker: normalize tên, associate thiết bị với từng person (vùng head/torso/legs, IoE), validate required items.
+    \item Logger: lưu crop người vi phạm + JSONL (timestamp, bbox, missing).
+    \item Visualizer: vẽ thiết bị + nhãn SAFE/VIOLATION, overlay FPS/thống kê.
+  \end{enumerate}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Lý do chọn kiến trúc này}
+  \begin{itemize}
+    \item \textbf{Tập trung YOLOv8n}: độ chính xác tốt, tốc độ cao, phù hợp demo và triển khai thực tế.
+    \item \textbf{Tách lớp rõ ràng}: thay đổi quy tắc hoặc cách ghép thiết bị không ảnh hưởng detector.
+    \item \textbf{Cấu hình hóa}: chỉnh ngưỡng và quy tắc bằng YAML, không cần sửa mã nguồn.
+    \item \textbf{Ghép theo vùng cơ thể}: giảm nhầm lẫn khi nhiều người đứng gần nhau.
+    \item \textbf{YOLO-World là hướng tương lai}: giảm chi phí gán nhãn khi cần PPE mới.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Cách làm chi tiết}
+  \begin{itemize}
+    \item \textbf{Phát hiện (YOLOv8n)}: nhận diện người và PPE, sau đó chuẩn hóa nhãn theo mapping.
+    \item \textbf{Ghép thiết bị}: chia vùng đầu/ngực/chân theo tỉ lệ; mũ bảo hộ bắt buộc ở vùng đầu.
+    \item \textbf{Kiểm tra quy tắc}: danh sách PPE bắt buộc; thiếu gì thì đánh vi phạm.
+    \item \textbf{Ghi log và hiển thị}: lưu ảnh vi phạm + JSONL; hiển thị khung và thống kê.
+    \item \textbf{Tương lai (YOLO-World)}: nhận diện bằng mô tả văn bản khi bổ sung PPE mới.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Ưu điểm \& Nhược điểm}
+  \begin{itemize}
+    \item \textbf{Ưu điểm (YOLOv8n)}:
+    \begin{itemize}
+      \item Tốc độ cao, ổn định; phù hợp chạy thời gian thực.
+      \item Dễ kiểm soát sai số nhờ ngưỡng tin cậy và IoU rõ ràng.
+      \item Kết quả nhất quán trên các PPE đã huấn luyện.
+    \end{itemize}
+    \item \textbf{Nhược điểm}:
+    \begin{itemize}
+      \item Cần dữ liệu gán nhãn khi thêm PPE mới.
+      \item Khó thích ứng nếu môi trường quá khác dữ liệu huấn luyện.
+      \item Chưa có theo dõi đối tượng nên thống kê có thể bị lặp.
+    \end{itemize}
+    \item \textbf{Ưu điểm tương lai (YOLO-World)}: mở rộng nhanh, ít phụ thuộc dữ liệu gán nhãn.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Cân bằng kỹ thuật}
+  \begin{itemize}
+    \item \textbf{Tốc độ vs độ chính xác}: ưu tiên YOLOv8n để đảm bảo thời gian thực.
+    \item \textbf{Chính xác vs bao phủ}: tăng ngưỡng để giảm báo sai; hạ ngưỡng để không bỏ sót.
+    \item \textbf{Ghép nghiêm ngặt vs linh hoạt}: nghiêm ngặt giúp giảm nhầm, linh hoạt giúp chịu được góc quay khó.
+    \item \textbf{Ghi log chi tiết vs hiệu năng}: lưu ảnh vi phạm tăng chi phí I/O; có thể tắt khi cần tốc độ.
+    \item \textbf{Tương lai}: YOLO-World đánh đổi tốc độ và độ ổn định để lấy khả năng mở rộng nhanh.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Association logic (EquipmentAssociator)}
+  \begin{itemize}
+    \item Chia box người thành region: head, torso, legs (tỉ lệ từ config).
+    \item Hard hat bắt buộc check vùng head (strict IoE $>$ 0.3). Thiết bị khác có thể relaxed nếu \texttt{strict\_regions=false}.
+    \item Dùng IoE (Intersection over Equipment area) để giảm nhầm lẫn khi box nhỏ.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Ghép thiết bị và kiểm tra tuân thủ}
+  \begin{itemize}
+    \item Bước 1: Tách tất cả box \textbf{person} và các box PPE từ kết quả phát hiện.
+    \item Bước 2: Với mỗi người, tạo vùng \textbf{đầu/ngực/chân} theo tỉ lệ trong cấu hình.
+    \item Tỉ lệ mặc định: đầu 30\%, ngực 50\% (từ 30\% đến 80\%), chân 30\% (từ 70\% đến 100\%).
+    \item Bước 3: Ghép PPE vào người bằng IoE; mũ bảo hộ phải nằm vùng đầu, áo nằm vùng ngực, giày nằm vùng chân.
+    \item Bước 4: So sánh với danh sách PPE bắt buộc; thiếu gì thì gắn nhãn \textbf{vi phạm}.
+    \item Kết quả: mỗi người có trạng thái \textbf{an toàn/vi phạm} kèm danh sách PPE thiếu.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Huấn luyện YOLOv8n (train\_ppe.py)}
+  \begin{itemize}
+    \item Dữ liệu: Construction-PPE (\texttt{datasets/construction-ppe/data.yaml}).
+    \item Mục tiêu: học đặc trưng PPE phổ biến (mũ, áo phản quang, giày, găng, kính).
+    \item Tham số: ảnh 640, 50 epochs (GPU) hoặc 20 epochs (CPU), batch 16/8.
+    \item Kết quả: \texttt{runs/detect/ppe\_detector/weights/best.pt} dùng cho chạy thực tế.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Lưới mẫu dữ liệu (image2--image7)}
+  \begin{center}
+    \begin{minipage}{0.30\linewidth}
+      \includegraphics[width=\linewidth]{images/image2.jpg}
+    \end{minipage}
+    \begin{minipage}{0.30\linewidth}
+      \includegraphics[width=\linewidth]{images/image3.jpeg}
+    \end{minipage}
+    \begin{minipage}{0.30\linewidth}
+      \includegraphics[width=\linewidth]{images/image4.jpg}
+    \end{minipage}
+    
+    \vspace{0.15cm}
+    
+    \begin{minipage}{0.30\linewidth}
+      \includegraphics[width=\linewidth]{images/image5.jpeg}
+    \end{minipage}
+    \begin{minipage}{0.30\linewidth}
+      \IfFileExists{images/image6.jpg}{\includegraphics[width=\linewidth]{images/image6.jpg}}{
+        \IfFileExists{images/image6.jpeg}{\includegraphics[width=\linewidth]{images/image6.jpeg}}{
+          \IfFileExists{images/image6.png}{\includegraphics[width=\linewidth]{images/image6.png}}{}
+        }
+      }
+    \end{minipage}
+    \begin{minipage}{0.30\linewidth}
+      \includegraphics[width=\linewidth]{images/image7.jpg}
+    \end{minipage}
+  \end{center}
+  \vspace{0.1cm}
+  \begin{itemize}
+    \item Tổng hợp nhanh bối cảnh, ánh sáng, mật độ người và mức độ che khuất.
+    \item Dùng để đánh giá trực quan tính đa dạng dữ liệu huấn luyện.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Trực quan nhãn (labels)}
+  \begin{center}
+    \includegraphics[width=0.68\linewidth]{images/labels.jpg}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Minh hoạ các lớp PPE và phân bố nhãn.
+    \item Dùng để kiểm tra dữ liệu có đủ đại diện cho các loại PPE hay không.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Batch huấn luyện (train batch)}
+  \begin{center}
+    \includegraphics[width=0.7\linewidth]{images/train_batch0.jpg}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Ảnh batch huấn luyện sau khi augment (biến đổi dữ liệu).
+    \item Giúp tăng đa dạng dữ liệu, cải thiện khả năng tổng quát.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Đường cong Precision-Recall}
+  \begin{center}
+    \includegraphics[width=0.7\linewidth]{images/BoxPR_curve.png}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Thể hiện cân bằng giữa độ chính xác và khả năng bắt đủ đối tượng.
+    \item Dùng để chọn ngưỡng tin cậy phù hợp khi triển khai.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Đường cong F1-score}
+  \begin{center}
+    \includegraphics[width=0.7\linewidth]{images/BoxF1_curve.png}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item F1-score là trung bình điều hoà giữa Precision và Recall.
+    \item Đỉnh đường cong gợi ý ngưỡng tối ưu cho cân bằng sai/đúng.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Đường cong Precision}
+  \begin{center}
+    \includegraphics[width=0.7\linewidth]{images/BoxP_curve.png}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Precision cao giúp giảm báo sai (false positive).
+    \item Quan trọng với cảnh báo an toàn để tránh làm phiền.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Đường cong Recall}
+  \begin{center}
+    \includegraphics[width=0.7\linewidth]{images/BoxR_curve.png}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Recall cao giúp giảm bỏ sót (false negative).
+    \item Quan trọng để không bỏ qua công nhân vi phạm PPE.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Ma trận nhầm lẫn}
+  \begin{center}
+    \includegraphics[width=0.7\linewidth]{images/confusion_matrix.png}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Cho thấy lớp nào hay bị nhầm lẫn với lớp khác.
+    \item Dùng để định hướng cải thiện dữ liệu hoặc thêm rule kiểm tra.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{So sánh nhãn và dự đoán (validation)}
+  \begin{center}
+    \includegraphics[width=0.48\linewidth]{images/val_batch0_labels.jpg}
+    \includegraphics[width=0.48\linewidth]{images/val_batch0_pred.jpg}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Trái: nhãn gốc. Phải: dự đoán của mô hình.
+    \item Dùng để kiểm tra trực quan chất lượng phát hiện.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Ma trận nhầm lẫn (chuẩn hoá)}
+  \begin{center}
+    \includegraphics[width=0.7\linewidth]{images/confusion_matrix_normalized.png}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Thể hiện tỉ lệ nhầm lẫn theo phần trăm giữa các lớp.
+    \item Dễ quan sát lớp nào cần bổ sung dữ liệu.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{So sánh nhãn và dự đoán (validation batch 1)}
+  \begin{center}
+    \includegraphics[width=0.48\linewidth]{images/val_batch1_labels.jpg}
+    \includegraphics[width=0.48\linewidth]{images/val_batch1_pred.jpg}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item So sánh trực quan giữa nhãn gốc và kết quả dự đoán.
+    \item Dùng để đánh giá lỗi thiếu hoặc thừa bounding box.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{So sánh nhãn và dự đoán (validation batch 2)}
+  \begin{center}
+    \includegraphics[width=0.48\linewidth]{images/val_batch2_labels.jpg}
+    \includegraphics[width=0.48\linewidth]{images/val_batch2_pred.jpg}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Trường hợp nhiều đối tượng và vị trí chồng lấn.
+    \item Giúp kiểm tra độ ổn định khi bối cảnh phức tạp.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Demo sử dụng}
+  \textbf{Chạy YOLOv8n trên video/camera:}
+  \begin{itemize}
+    \item \texttt{python main.py --config config/config\_yolov8\_production.yaml --source bao-ho-lao-dong.mp4}
+    \item Lưu video: \texttt{--save-path output/demo.mp4}
+  \end{itemize}
+  \textbf{Hướng tương lai (YOLO-World):}
+  \begin{itemize}
+    \item \texttt{python scripts/test\_images.py --config config/config\_yoloworld\_future.yaml --source images\_test --output output/future\_test}
+    \item Dùng mô tả văn bản để thử PPE mới, không cần gán nhãn.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Quy trình YOLOv8n (hiện tại)}
+  \begin{center}
+    \includegraphics[width=1.0\linewidth]{images/luong_yolov8n.png}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Luồng xử lý: dữ liệu huấn luyện $\rightarrow$ mô hình YOLOv8n $\rightarrow$ phát hiện PPE.
+    \item Phù hợp chạy thời gian thực với tốc độ cao.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Quy trình YOLO-World (tương lai)}
+  \begin{center}
+    \includegraphics[width=1.0\linewidth]{images/luong_yolov8s_world.png}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Luồng xử lý: mô tả văn bản $\rightarrow$ nhận diện PPE mới mà không cần gán nhãn lại.
+    \item Tăng khả năng mở rộng khi có thiết bị bảo hộ mới.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Kiến trúc YOLO-World}
+  \begin{center}
+    \includegraphics[width=0.7\linewidth]{images/yolo-world-model-architecture-overview.png}
+  \end{center}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Kết hợp mô hình thị giác với mô tả văn bản để phát hiện theo ngữ nghĩa.
+    \item Cho phép mở rộng lớp PPE mới mà không cần huấn luyện lại từ đầu.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Đánh giá \& hạn chế}
+  \begin{itemize}
+    \item Độ chính xác phụ thuộc chất lượng weights (\texttt{yolo8s\_ppedetect\_50e\_best.pt}); chưa có số liệu định lượng trong repo (cần chạy val lấy mAP).
+    \item Zero-shot triển khai nhanh nhưng dễ nhầm nếu prompt không rõ hoặc mâu thuẫn (conf thấp).
+    \item Chưa có tracking ID (multi-frame consistency), nên thống kê vi phạm mang tính frame-level.
+    \item Logger chưa tách lưu vi phạm theo video/ca làm; chưa có dashboard.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Hướng phát triển tương lai}
+  \begin{itemize}
+    \item Thêm \textbf{multi-object tracking} (ByteTrack/OC-SORT) để giảm duplicate và theo dõi từng công nhân.
+    \item Bổ sung \textbf{asynchronous batch inference} cho video stream để tối ưu FPS trên CPU/GPU yếu.
+    \item Mở rộng \textbf{rule engine} (per-zone, per-role, time-of-day) và UI config web.
+    \item Xây dựng \textbf{dashboard} (FastAPI + React) cho real-time alert, thống kê vi phạm, truy xuất ảnh crop.
+    \item Fine-tune thêm trên dữ liệu nội bộ (domain adaptation) và thử nghiệm \textbf{distillation} để nhẹ hơn.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------
+\begin{frame}{Tổng kết}
+  \begin{itemize}
+    \item Trọng tâm hiện tại là YOLOv8n đã huấn luyện, đảm bảo tốc độ và độ ổn định khi triển khai.
+    \item Pipeline rõ ràng: camera/video $\rightarrow$ phát hiện $\rightarrow$ ghép thiết bị $\rightarrow$ kiểm tra quy tắc $\rightarrow$ ghi log/hiển thị.
+    \item Dễ mở rộng nhờ cấu hình YAML và các module tách biệt.
+    \item Hướng tương lai: YOLO-World để mở rộng PPE mới không cần gán nhãn, kèm tracking và dashboard.
+  \end{itemize}
+\end{frame}
+
+\end{document}
+

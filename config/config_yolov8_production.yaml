@@ -28,7 +28,7 @@ ppe_rules:
   # Logic: Must have ALL of these to be Compliant
   required_equipment:
     - hard_hat
-    # - safety_vest
+    - safety_vest
 
   # Mapping from Model Class Names -> Standard Logic Names
   class_mapping:

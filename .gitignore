@@ -48,3 +48,19 @@ output/*
 !output/demo_yoloworld/
 !output/demo_yoloworld/*.jpg
 !output/demo_yoloworld/*.png
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.nav
+*.out
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.dvi
+*.pdf
